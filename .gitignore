@@ -216,3 +216,9 @@ __marimo__/
 
 # macOS files
 .DS_Store
+
+# Local data artifacts
+data/*.csv
+
+# Local result backups
+results/*_backup.csv

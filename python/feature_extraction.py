@@ -24,6 +24,7 @@ from scipy.fft import fft, fftfreq
 
 from datetime import datetime
 import matplotlib.pyplot as plt
+from joblib import Parallel, delayed
 
 # Import the data loader from the generic_neuromotor_interface package
 from generic_neuromotor_interface.explore_data.load import load_data
@@ -59,7 +60,7 @@ def get_gesture_prompt_times(prompts,
         prompt_names = prompts['name'].values
         prompt_idx = 0
         # For each sample, check if a gesture occurs at that timestamp
-        for i, t in enumerate(time):
+        for i, t in enumerate(timestamps):
             while prompt_idx + 1 < len(prompt_times) and prompt_times[prompt_idx + 1] <= t:
                 prompt_idx += 1
             if prompt_times[prompt_idx] == t:
@@ -166,16 +167,19 @@ def get_large_event_array(emg: np.array,
         stop = int(window_size[1] + index)
     
         # determine big event, independent of channel
-        try:# first event that reaches a zscore of 3 (3 * stdev)
-            large_event = np.where(np.max(zscore_windowed[i,lowcut:,:], axis=1) > 3)[0][0] 
-        except Exception as e:
+        try:  # first event that reaches a zscore of 3 (3 * stdev)
+            large_event = np.where(np.max(zscore_windowed[i, lowcut:, :], axis=1) > 3)[0][0]
+        except IndexError:
             try:
                 # else first event that reaches a zscore of 1.65, alpha=0.05
-                large_event = np.where(np.max(zscore_windowed[i,lowcut:,:], axis=1) > 1.65)[0][0] 
-                print('\t\t\tLower threshold used', gesture, i)
-            except:
-                print('\t\t\tCould not find a large event' , gesture, i)
+                large_event = np.where(np.max(zscore_windowed[i, lowcut:, :], axis=1) > 1.65)[0][0]
+                print('\t\t\tLower threshold used', gesture_name, i)
+            except IndexError:
+                print('\t\t\tCould not find a large event', gesture_name, i)
                 continue
+        except Exception as e:
+            print('\t\t\tError finding large event', gesture_name, i, e)
+            continue
 
         # new index relative to the start index from this iteration        
         new_index = start + lowcut + large_event 
@@ -184,16 +188,24 @@ def get_large_event_array(emg: np.array,
         
         startl = int(lowcut+large_event+trim_window[0]) #shifted indices
         stopl = int(lowcut+large_event+trim_window[1])
-        try:
+        window_emg = emg_windowed[i, startl:stopl, :]
+        window_z = zscore_windowed[i, startl:stopl, :]
+        target_len = emg_trimmed.shape[1]
+
+        if window_emg.shape[0] == target_len:
             # emg value, shifted, 0 is first large muscle movement around prompt time
-            emg_trimmed[i,:,:] = emg_windowed[i,startl:stopl,:] 
+            emg_trimmed[i, :, :] = window_emg
             # zscore, shifted, 0 is first large muscle movement around prompt time
-            zscore_trimmed[i,:,:] = zscore_windowed[i,startl:stopl,:] 
-        except Exception as e:
-            print('\t\t\tEvent at end of the windowed area' , gesture, i)
-            endofwindow = emg_windowed[i,startl:stopl,:].shape[0]
-            emg_trimmed[i,:endofwindow,:] = emg_windowed[i,startl:stopl,:]
-            zscore_trimmed[i,:endofwindow,:] = zscore_windowed[i,startl:stopl,:]
+            zscore_trimmed[i, :, :] = window_z
+        elif window_emg.shape[0] > 0 and window_emg.shape[0] < target_len:
+            # Pad short windows with zeros to match expected shape
+            print('\t\t\tEvent at end of the windowed area', gesture_name, i)
+            emg_trimmed[i, :window_emg.shape[0], :] = window_emg
+            zscore_trimmed[i, :window_z.shape[0], :] = window_z
+        else:
+            # Empty or invalid slice; skip this gesture instance
+            print('\t\t\tWindow too short; skipping', gesture_name, i)
+            continue
 
     if save:
         fig, axs = plt.subplots(1,2 , figsize=(2.5,2.5))
@@ -222,7 +234,7 @@ def get_large_event_array(emg: np.array,
         axs[1].set_xticks([0,0.05,0.1])    
         # axs[1].set_yticklabels(np.arange(16))   
         # plt.tight_layout()
-        plt.savefig(os.path.join(savedir, '{0}-{1}.png'.format(gesture, file[-25:-5])))
+        plt.savefig(os.path.join(savedir, '{0}-{1}.png'.format(gesture_name, file[-25:-5])))
         if show:
             plt.show()
         else:
@@ -335,6 +347,147 @@ def column_names(name, n_channel):
     return columns
 
 
+def process_user_file(file: str, savefig: bool, fps: int, window_size: np.array, trim_window: np.array, data_folder: str):
+    basename = os.path.basename(file)  # Get just the filename (not the full path)
+    print(f"\nProcessing new file: {basename}")  # Print when starting a new file
+
+    parts = basename.split('_')
+    user_number = parts[3]  # Extract user_number from filename
+
+    # We'll load the file using the `load_data` utility function.
+    # Load the EMG data and associated info from single .hdf5 file
+    data = load_data(file)
+    emg = data.emg         # EMG signal, shape: (n_samples, 16)
+    time_array = data.time       # Timestamps for each sample
+    prompts = data.prompts # Dataframe of gesture events (name, time)
+    stages = data.stages   # Dataframe of stage events (start, end, name)
+
+    n_samples, n_channels = emg.shape
+
+    print('\t Getting gestures')
+    gesture_labels, n_gestures = get_gesture_prompt_times(prompts, time_array)
+    print('\t\t Found {} gestures'.format(n_gestures))
+    print('\t Getting stages')
+    stage_labels = get_gesture_stage_times(stages, time_array)
+
+    all_gestures = np.unique(gesture_labels)
+
+    #set up columns
+    rms_list = column_names('rms', n_channels)
+    maxabs_list = column_names('maxabs', n_channels)
+    mav_list = column_names('mav', n_channels)
+
+    peak_freq_list = column_names('fft-peakfreq', n_channels)
+    max_power_list = column_names('fft-maxpower', n_channels)
+    high_freq_list = column_names('fft-highfreq', n_channels)
+    low_freq_list = column_names('fft-lowfreq', n_channels)
+    halfwidth_list = column_names('fft-halfwidth', n_channels)
+
+    thresh3_list = column_names('thresh3-events', n_channels)
+    thresh2_list = column_names('thresh2-events', n_channels)
+
+    full_list = []
+    full_list.extend(rms_list)         
+    full_list.extend(maxabs_list)         
+    full_list.extend(mav_list)         
+    full_list.extend(peak_freq_list)         
+    full_list.extend(max_power_list)         
+    full_list.extend(high_freq_list)         
+    full_list.extend(low_freq_list)         
+    full_list.extend(halfwidth_list)         
+    full_list.extend(thresh3_list)  
+    full_list.extend(thresh2_list)
+
+    # set up current DataFrame for this participant
+    current_DF = pd.DataFrame(np.zeros((n_gestures, len(full_list)))*np.nan, columns=full_list)
+
+    total_gestures = 0
+    for gesture in all_gestures:
+        if gesture == '': # skip empty gestures
+            continue
+        print('\t\t', gesture)
+
+        gest_indices = np.where(gesture_labels == gesture)[0] # find index of these gestures
+        # print(stage_labels[gest_indices])
+
+        gesture_n = len(gest_indices)
+        total_gestures += gesture_n
+
+        current_indices = np.arange(total_gestures-gesture_n, total_gestures).astype(int)
+
+        current_DF.loc[current_indices, ['gesture']] = gesture
+        current_DF.loc[current_indices, ['stage']] =  stage_labels[gest_indices]
+        current_DF.loc[current_indices, ['user']] = user_number
+
+        # process data splits separately
+        if savefig:
+            emg_trimmed, zscore_trimmed, shifts = get_large_event_array(emg, 
+                                           gesture_name=gesture, 
+                                           gest_indices=gest_indices, 
+                                           sample_rate=fps, 
+                                           lowend = -0.05,
+                                           window_size=window_size, 
+                                           trim_window=trim_window,
+                                           show=False,
+                                           savedir=data_folder,
+                                           file=file)
+        else:
+            emg_trimmed, zscore_trimmed, shifts = get_large_event_array(emg, 
+                                           gesture_name=gesture, 
+                                           gest_indices=gest_indices, 
+                                           sample_rate=2000, 
+                                           lowend = -0.05,
+                                           window_size=window_size, 
+                                           trim_window=trim_window,
+                                           show=False,
+                                           savedir=None,
+                                           file=file)
+        
+        # Extract feature here
+        
+        # --- Find the correct metadata row for this event ---
+        # Each event should fall within a start/end interval in the metadata
+        
+        rms_emg = np.sqrt(np.mean(emg_trimmed ** 2, axis=1))  # Root Mean Square
+        maxabs_emg = np.max(np.abs(emg_trimmed), axis=1)  # Root Mean Square
+        mav_emg = np.mean(np.abs(emg_trimmed), axis=1)
+
+        for t, curr in enumerate(current_indices):
+            curr = int(curr)
+            
+            for i in range(16):
+                ranges = get_threshold_events(zscore_trimmed[t,:,i], threshold=3)
+                if ranges != None:
+                    current_DF.loc[curr, [thresh3_list[i]]] = len(ranges)
+                else:
+                    current_DF.loc[curr, [thresh3_list[i]]] = 0
+
+                ranges = get_threshold_events(zscore_trimmed[t,:,i], threshold=2)
+                if ranges != None:
+                    current_DF.loc[curr, [thresh2_list[i]]] = len(ranges)
+                else:
+                    current_DF.loc[curr, [thresh2_list[i]]] = 0
+                try:
+                    highfreq, maxpower, freq_range = fft_windowed(emg_trimmed[t,:,i], sample_rate=2000, hanning=True)
+                except:
+                    print('\t\t\t\tCould not find fft information for index {0}, channel {1}'.format(t, i))
+                    highfreq = np.nan
+                    maxpower = np.nan
+                    freq_range = [np.nan, np.nan]
+
+                current_DF.loc[curr, rms_list[i]] = rms_emg[t, i]
+                current_DF.loc[curr, maxabs_list[i]] = maxabs_emg[t, i]
+                current_DF.loc[curr, mav_list[i]] = mav_emg[t, i]
+
+                current_DF.loc[curr, peak_freq_list[i]] = highfreq
+                current_DF.loc[curr, max_power_list[i]] = maxpower
+                current_DF.loc[curr, high_freq_list[i]] = freq_range[1]
+                current_DF.loc[curr, low_freq_list[i]] = freq_range[0]
+                current_DF.loc[curr, halfwidth_list[i]] = np.diff(freq_range)
+    print("Processed {} gestures".format(total_gestures))
+    return current_DF
+
+
 if __name__ == '__main__':
 
     import argparse
@@ -354,8 +507,8 @@ if __name__ == '__main__':
         default=2000,  
         help = 'frames per second for data collection')
     ap.add_argument('-s', '--split', type = str,
-        default='peronsal',  
-        help = '"peronsal" or "universal" split')
+        default='personal',  
+        help = '"personal" or "universal" split')
     args = vars(ap.parse_args())
 
 
@@ -375,153 +528,22 @@ if __name__ == '__main__':
     trim_window = np.array([-0.01,0.1])
     window_size = np.array([-1,1])
 
-    for f, file in enumerate(files):
+    any_data_processed = False
+    results = Parallel(n_jobs=-1, prefer="processes")(
+        delayed(process_user_file)(
+            file, savefig, fps, window_size, trim_window, DATA_FOLDER
+        )
+        for file in files
+    )
 
-        basename = os.path.basename(file)  # Get just the filename (not the full path)
-        print(f"\nProcessing new file: {basename}")  # Print when starting a new file
-        
-        parts = basename.split('_')
-        user_number = parts[3]  # Extract user_number from filename
-        
-        # We'll load the file using the `load_data` utility function.
-        # Load the EMG data and associated info from single .hdf5 file
-        data = load_data(file)
-        emg = data.emg         # EMG signal, shape: (n_samples, 16)
-        time = data.time       # Timestamps for each sample
-        prompts = data.prompts # Dataframe of gesture events (name, time)
-        stages = data.stages   # Dataframe of stage events (start, end, name)
-        
-        n_samples, n_channels = emg.shape
+    # Filter out any None results
+    results = [df for df in results if df is not None]
+    any_data_processed = len(results) > 0
 
-        print('\t Getting gestures')
-        gesture_labels, n_gestures = get_gesture_prompt_times(prompts, time)
-        print('\t\t Found {} gestures'.format(n_gestures))
-        print('\t Getting stages')
-        stage_labels = get_gesture_stage_times(stages, time)
+    if any_data_processed:
+        final_df = pd.concat(results, ignore_index=True)
 
-        all_gestures = np.unique(gesture_labels)
-
-        #set up columns
-        rms_list = column_names('rms', n_channels)
-        maxabs_list = column_names('maxabs', n_channels)
-        mav_list = column_names('mav', n_channels)
-
-        peak_freq_list = column_names('fft-peakfreq', n_channels)
-        max_power_list = column_names('fft-maxpower', n_channels)
-        high_freq_list = column_names('fft-highfreq', n_channels)
-        low_freq_list = column_names('fft-lowfreq', n_channels)
-        halfwidth_list = column_names('fft-halfwidth', n_channels)
-
-        thresh3_list = column_names('thresh3-events', n_channels)
-        thresh2_list = column_names('thresh2-events', n_channels)
-
-        full_list = []
-        full_list.extend(rms_list)         
-        full_list.extend(maxabs_list)         
-        full_list.extend(mav_list)         
-        full_list.extend(peak_freq_list)         
-        full_list.extend(max_power_list)         
-        full_list.extend(high_freq_list)         
-        full_list.extend(low_freq_list)         
-        full_list.extend(halfwidth_list)         
-        full_list.extend(thresh3_list)  
-        full_list.extend(thresh2_list)
-
-        # set up current DataFrame for this participant
-        current_DF = pd.DataFrame(np.zeros((n_gestures, len(full_list)))*np.nan, columns=full_list)
-
-
-        total_gestures = 0
-        for gesture in all_gestures:
-            if gesture == '': # skip empty gestures
-                continue
-            print('\t\t', gesture)
-
-            gest_indices = np.where(gesture_labels == gesture)[0] # find index of these gestures
-            # print(stage_labels[gest_indices])
-
-            gesture_n = len(gest_indices)
-            total_gestures += gesture_n
-
-            current_indices = np.arange(total_gestures-gesture_n, total_gestures).astype(int)
-
-            current_DF.loc[current_indices, ['gesture']] = gesture
-            current_DF.loc[current_indices, ['stage']] =  stage_labels[gest_indices]
-            current_DF.loc[current_indices, ['user']] = user_number
-
-            # process data splits separately
-            if savefig:
-                emg_trimmed, zscore_trimmed, shifts = get_large_event_array(emg, 
-                                               gesture_name=gesture, 
-                                               gest_indices=gest_indices, 
-                                               sample_rate=fps, 
-                                               lowend = -0.05,
-                                               window_size=window_size, 
-                                               trim_window=trim_window,
-                                               show=False,
-                                               savedir=DATA_FOLDER,
-                                               file=file)
-            else:
-                emg_trimmed, zscore_trimmed, shifts = get_large_event_array(emg, 
-                                               gesture_name=gesture, 
-                                               gest_indices=gest_indices, 
-                                               sample_rate=2000, 
-                                               lowend = -0.05,
-                                               window_size=window_size, 
-                                               trim_window=trim_window,
-                                               show=False,
-                                               savedir=None,
-                                               file=file)
-            
-            # Extract feature here
-            
-            # --- Find the correct metadata row for this event ---
-            # Each event should fall within a start/end interval in the metadata
-            
-            rms_emg = np.sqrt(np.mean(emg_trimmed ** 2, axis=1))  # Root Mean Square
-            maxabs_emg = np.max(np.abs(emg_trimmed), axis=1)  # Root Mean Square
-            mav_emg = np.mean(np.abs(emg_trimmed), axis=1)
-
-            for t, curr in enumerate(current_indices):
-                curr = int(curr)
-                
-                for i in range(16):
-                    ranges = get_threshold_events(zscore_trimmed[t,:,i], threshold=3)
-                    if ranges != None:
-                        current_DF.loc[curr, [thresh3_list[i]]] = len(ranges)
-                    else:
-                        current_DF.loc[curr, [thresh3_list[i]]] = 0
-
-                    ranges = get_threshold_events(zscore_trimmed[t,:,i], threshold=2)
-                    if ranges != None:
-                        current_DF.loc[curr, [thresh2_list[i]]] = len(ranges)
-                    else:
-                        current_DF.loc[curr, [thresh2_list[i]]] = 0
-                    try:
-                        highfreq, maxpower, freq_range = fft_windowed(emg_trimmed[t,:,i], sample_rate=2000, hanning=True)
-                    except:
-                        print('\t\t\t\tCould not find fft information for index {0}, channel {1}'.format(t, i))
-                        highfreq = np.nan
-                        maxpower = np.nan
-                        freq_range = [np.nan, np.nan]
-
-                    current_DF.loc[curr, rms_list[i]] = rms_emg[t, i]
-                    current_DF.loc[curr, maxabs_list[i]] = maxabs_emg[t, i]
-                    current_DF.loc[curr, mav_list[i]] = mav_emg[t, i]
-
-                    current_DF.loc[curr, peak_freq_list[i]] = highfreq
-                    current_DF.loc[curr, max_power_list[i]] = maxpower
-                    current_DF.loc[curr, high_freq_list[i]] = freq_range[1]
-                    current_DF.loc[curr, low_freq_list[i]] = freq_range[0]
-                    current_DF.loc[curr, halfwidth_list[i]] = np.diff(freq_range)
-        print("Processed {} gestures".format(total_gestures))
-        #Concatenate all partipants             
-        if f == 0:
-            final_df = current_DF
-        else:
-            final_df = pd.concat([final_df, current_DF])
-
-    final_df.to_csv(os.path.join(DATA_FOLDER, 'features_emg_data.csv'))
-
-
-
+    if any_data_processed:
+        final_df.to_csv(os.path.join(DATA_FOLDER, 'features_emg_data.csv'))
+    else:
+        print("No data processed; skipping CSV export.")

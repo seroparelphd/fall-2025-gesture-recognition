@@ -31,7 +31,26 @@ cd fall-2025-gesture-recognition/python
 python feature_extraction.py -i ~/emg_data
 ```
 
-**3. Run pipeline:** Execute notebooks (detailed below) in order: `eda.ipynb` → `feature_selection.ipynb` → `modeling_experiments.ipynb` → `final_results.ipynb`
+**3. One-click reproduction:** For a one-click reproduction of the entire analysis, run: `./run_pipeline.sh`
+
+**4. Manual pipeline (optional):** Execute notebooks in order: `notebooks/eda.ipynb` → `notebooks/feature_selection.ipynb` → `notebooks/modeling_experiments.ipynb` → `notebooks/final_results.ipynb`
+
+## Pipeline at a Glance
+
+| Step | File | Primary Output Artifact |
+| :--- | :--- | :--- |
+| Extraction | `python/feature_extraction.py` | `features_emg_data.csv` (written to the input data directory) |
+| EDA | `notebooks/eda.ipynb` | `data/processed/features_emg_data_cleaned.csv` |
+| Selection | `notebooks/feature_selection.ipynb` | `results/feature_selection.csv` and `data/processed/train_calib_selected.csv` |
+| Modeling | `notebooks/modeling_experiments.ipynb` | `results/model_comparison.csv` |
+
+## Engineering Challenges & Solutions
+
+- **Missing Class Handling:** Some users had rare gestures that could disappear from a fold (e.g., User 51), causing non-contiguous class IDs and model crashes. The fix was a per-fold label re-encoding step inside cross-validation so each train/test split uses contiguous labels before fitting.
+- **End-to-End Pipeline Automation:** The pipeline now runs from ~33GB of raw EMG data through feature extraction, modeling, and a finished HTML report with a single command (`./run_pipeline.sh`), making the full analysis reproducible end-to-end.
+| Final Results | `notebooks/final_results.ipynb` | Final plots and analysis outputs |
+
+To run end-to-end with documented ordering, see `run_pipeline.sh`.
 
 ## Project Deliverables and Final Results
 
@@ -42,8 +61,8 @@ python feature_extraction.py -i ~/emg_data
 | Evaluation Plan | Personalized split implemented using stratified 80/20 K-Fold per user (within-user CV) to ensure evaluation mirrors deployment scenarios |
 | Feature Engineering | Feature extraction yielded 160 features. Feature selection (by random forest ranking and correlation pruning) successfully reduced the feature space to 37 non-redundant metrics. Key features included RMS metrics, concentrated heavily on sEMG channels ch05, ch04, and ch10. |
 | Modeling & Validation | Evaluated trivial, linear (Logistic Regression), and tree-based models (random forest, XGBoost). Final model selected: **Logistic Regression with L2 regularization (Logit\_L2)** due to robust CV performance and interpretability. |
-| Final Results | **Strong within-user generalization** achieved on calibration data splits (CV Mean F1 Macro $\approx \mathbf{0.7164}$). **Poor generalization to unseen gestures** (Holdout Test F1 Macro $\approx \mathbf{0.3977}$), confirming significant performance heterogeneity across users. Error analysis revealed systematic confusion, particularly between specific finger release gestures and directional thumb movements. |
-| Final Documentation | Executive summary (`summary.pdf`) and presentation slide deck (`presentation/`) finalized and stored. |
+| Final Results | **Strong within-user generalization** achieved on calibration data splits (CV Mean F1 Macro = $\mathbf{0.709758}$). Compared to the original RandomForest baseline (Mean F1 Macro = 0.609939, Mean Accuracy = 0.640239), **Logit\_L2** improved performance (Mean F1 Macro = $\mathbf{0.709758}$, Mean Accuracy = $\mathbf{0.726952}$). **Poor generalization to unseen gestures** (Holdout Test F1 Macro = $\mathbf{0.390907}$, Holdout Test Accuracy = $\mathbf{0.456762}$), confirming significant performance heterogeneity across users. Analysis: `thumb_out` showed the highest recall improvement (16%) when additional training samples were available. |
+| Final Documentation | Executive summary (`summary.pdf`) and presentation slide deck (`deliverables/presentation.pdf`) finalized and stored. |
 
 ## Repository Structure Overview
 
@@ -52,6 +71,7 @@ python feature_extraction.py -i ~/emg_data
 | `deliverables/` | `summary.pdf`<br>`kpis.md`<br>`evaluation_plan.md`<br>`modeling_plan.md` | Written conceptual documentation deliverables |
 | `results/` | `feature_selection.csv`<br>`model_comparison.csv` | Logs of feature elimination decisions and cross-validation KPI scores |
 | `notebooks/` | `eda.ipynb`<br>`feature_selection.ipynb`<br>`modeling_experiments.ipynb`<br>`final_results.ipynb` | Exploratory analysis, modeling experiments, and final results evaluation |
+| `run_pipeline.sh` | — | End-to-end pipeline execution script (documents intended workflow) |
 
 ## References
 
