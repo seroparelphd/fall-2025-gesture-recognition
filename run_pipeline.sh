@@ -48,7 +48,7 @@ run_cmd() {
     "$@"
   fi
 }
-DATA_DIR="${HOME}/emg_data"
+DATA_DIR="${ROOT_DIR}/data/emg_data"
 OUTPUT_FEATURES="${ROOT_DIR}/data/interim/features_emg_data.csv"
 
 FORCE=0

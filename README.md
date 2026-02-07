@@ -69,6 +69,17 @@ To run end-to-end with documented ordering, see `run_pipeline.sh`.
 | Final Results | **Strong within-user generalization** achieved on calibration data splits (CV Mean F1 Macro = $\mathbf{0.709758}$). Compared to the original RandomForest baseline (Mean F1 Macro = 0.609939, Mean Accuracy = 0.640239), **Logit\_L2** improved performance (Mean F1 Macro = $\mathbf{0.709758}$, Mean Accuracy = $\mathbf{0.726952}$). **Poor generalization to unseen gestures** (Holdout Test F1 Macro = $\mathbf{0.390907}$, Holdout Test Accuracy = $\mathbf{0.456762}$), confirming significant performance heterogeneity across users. Analysis: `thumb_out` showed the highest recall improvement (16%) when additional training samples were available. |
 | Final Documentation | Executive summary (`summary.pdf`) and presentation slide deck (`deliverables/presentation.pdf`) finalized and stored. |
 
+## Key Visualizations
+
+![Model Performance](results/figures/model_comparison.png)
+Comparison of F1 Scores across all tested models. The Logit_L2 model (our final choice) demonstrates the best balance of performance and stability.
+
+![Classification Errors](results/figures/confusion_matrix_analysis.png)
+Confusion matrix showing classification performance. Off-diagonal elements highlight specific gestures that are frequently misclassified.
+
+![User Variability](results/figures/per_user_performance.png)
+Distribution of model performance across 100 users, highlighting the significant inter-subject variability in sEMG signal quality.
+
 ## Repository Structure Overview
 
 ```

@@ -232,6 +232,9 @@ artifacts/
 cache/
 data/
 results/
+!results/figures/
+!results/tables/model_comparison.csv
+!results/final/
 
 # Keep the final report HTML and figures, but ignore the messy tables
 reports/tables/
