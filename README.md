@@ -32,6 +32,7 @@ python src/feature_extraction.py -i ~/emg_data
 ```
 
 **3. One-click reproduction:** For a one-click reproduction of the entire analysis, run: `./run_pipeline.sh`
+**Tip:** Use `./run_pipeline.sh --force` to bypass caching and force a full re-run of the feature extraction. Use `./run_pipeline.sh -v` for verbose logs or `./run_pipeline.sh -q` for quiet mode.
 
 **4. Manual pipeline (optional):** Execute notebooks in order: `notebooks/eda.ipynb` → `notebooks/feature_selection.ipynb` → `notebooks/modeling_experiments.ipynb` → `notebooks/final_results.ipynb`
 
@@ -39,16 +40,20 @@ python src/feature_extraction.py -i ~/emg_data
 
 | Step | File | Primary Output Artifact |
 | :--- | :--- | :--- |
-| Extraction | `src/feature_extraction.py` | `features_emg_data.csv` (written to the input data directory) |
+| Extraction | `src/feature_extraction.py` | `data/interim/features_emg_data.csv` |
 | EDA | `notebooks/eda.ipynb` | `data/processed/features_emg_data_cleaned.csv` |
-| Selection | `notebooks/feature_selection.ipynb` | `results/feature_selection.csv` and `data/processed/train_calib_selected.csv` |
-| Modeling | `notebooks/modeling_experiments.ipynb` | `results/model_comparison.csv` |
+| Selection (compute) | `src/run_feature_selection.py` | `results/tables/feature_selection.csv` and `data/processed/train_calib_selected.csv` |
+| Selection (report) | `notebooks/feature_selection.ipynb` | `results/figures/` and `results/tables/` |
+| Modeling (compute) | `src/run_modeling.py` | `results/tables/model_comparison.csv` |
+| Modeling (report) | `notebooks/modeling_experiments.ipynb` | `results/figures/` and `results/tables/` |
 | Final Results | `notebooks/final_results.ipynb` | `reports/final_results.html` |
 
 ## Engineering Challenges & Solutions
 
 - **Missing Class Handling:** Some users had rare gestures that could disappear from a fold (e.g., User 51), causing non-contiguous class IDs and model crashes. The fix was a per-fold label re-encoding step inside cross-validation so each train/test split uses contiguous labels before fitting.
 - **End-to-End Pipeline Automation:** The pipeline now runs from ~33GB of raw EMG data through feature extraction, modeling, and a finished HTML report with a single command (`./run_pipeline.sh`), making the full analysis reproducible end-to-end.
+- **Compute Efficiency & Caching:** Implemented a 'skip-if-exists' caching layer in the automation script. The pipeline now detects if heavy artifacts (like the 33GB feature extraction output) already exist and skips the redundant computation, saving ~15 minutes per run during analysis iterations.
+- **Compute vs. Reporting Architecture:** The pipeline separates heavy computation from visualization. Python scripts in `src/` handle parallel processing and artifact generation (using `tqdm` for progress tracking), while Jupyter Notebooks in `notebooks/` simply load the results to generate strict, reproducible reports.
 
 To run end-to-end with documented ordering, see `run_pipeline.sh`.
 
@@ -66,12 +71,19 @@ To run end-to-end with documented ordering, see `run_pipeline.sh`.
 
 ## Repository Structure Overview
 
-| Directory | Key Files/Artifacts | Purpose |
-| :--- | :--- | :--- |
-| `deliverables/` | `summary.pdf`<br>`kpis.md`<br>`evaluation_plan.md`<br>`modeling_plan.md` | Written conceptual documentation deliverables |
-| `results/` | `feature_selection.csv`<br>`model_comparison.csv` | Logs of feature elimination decisions and cross-validation KPI scores |
-| `notebooks/` | `eda.ipynb`<br>`feature_selection.ipynb`<br>`modeling_experiments.ipynb`<br>`final_results.ipynb` | Exploratory analysis, modeling experiments, and final results evaluation |
-| `run_pipeline.sh` | — | End-to-end pipeline execution script (documents intended workflow) |
+```
+├── data/
+│   ├── interim/    # Intermediate processing (e.g., raw features)
+│   └── processed/  # Cleaned data for modeling
+├── results/
+│   ├── figures/    # Generated plots (PNG/SVG)
+│   ├── tables/     # Analysis metrics (CSVs)
+│   └── final/      # Final reports
+├── src/
+│   ├── run_feature_selection.py  # Heavy compute script
+│   └── run_modeling.py           # Heavy compute script
+└── notebooks/      # Lightweight reporting only
+```
 
 ## References
 

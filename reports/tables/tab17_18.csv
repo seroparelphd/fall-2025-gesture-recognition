@@ -1,0 +1,2 @@
+count,mean,std,min,25%,50%,75%,max,Total_Users,Total_Samples,Mean_Samples_Per_User
+100.0,0.444,0.1466,0.1244,0.3362,0.4294,0.556,0.7961,100,27112,271.1

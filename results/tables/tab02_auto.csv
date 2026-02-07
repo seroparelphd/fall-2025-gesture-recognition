@@ -1,0 +1,10 @@
+Gesture,All_Users_Recall,Above_Avg_Recall,Absolute_Improvement,Percent_Improvement
+thumb_up,0.213,0.3,0.087,41.0
+middle_press,0.744,0.816,0.072,9.714
+index_release,0.566,0.636,0.069,12.231
+index_press,0.777,0.842,0.065,8.41
+middle_release,0.494,0.514,0.02,4.047
+thumb_in,0.041,0.048,0.007,16.667
+thumb_click,0.262,0.182,-0.08,-30.579
+thumb_down,0.375,0.095,-0.28,-74.603
+thumb_out,0.431,0.15,-0.281,-65.227

@@ -1,0 +1,10 @@
+Encoded_label,Gesture_Class
+0,index_press
+1,index_release
+2,middle_press
+3,middle_release
+4,thumb_click
+5,thumb_down
+6,thumb_in
+7,thumb_out
+8,thumb_up

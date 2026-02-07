@@ -14,6 +14,7 @@ python feature_extraction.py -i ../data/emg_data/ -sf
 '''
 
 import os
+from pathlib import Path
 import glob
 import sys
 
@@ -31,13 +32,17 @@ from generic_neuromotor_interface.explore_data.load import load_data
 
 
 
-def get_task_dataset_paths(task: str) -> list[str]:
-    # Only return files that contain the task name in their filename
-
-    folder = os.path.expanduser(task)
+def get_task_dataset_paths(folder: str) -> list[str]:
+    # Only return discrete gesture files and explicitly skip other tasks.
+    folder = os.path.expanduser(folder)
     datasets = glob.glob(os.path.join(folder, '*.hdf5'))
-    
-    return [d for d in datasets if task in d]
+    return [
+        d
+        for d in datasets
+        if "discrete_gestures" in os.path.basename(d)
+        and "handwriting" not in os.path.basename(d)
+        and "wrist" not in os.path.basename(d)
+    ]
 
 
 def get_gesture_prompt_times(prompts,
@@ -56,8 +61,26 @@ def get_gesture_prompt_times(prompts,
     n_gestures = 0
 
     if not prompts.empty:
-        prompt_times = prompts['time'].values
-        prompt_names = prompts['name'].values
+        if 'time' in prompts.columns:
+            time_col = 'time'
+        elif 'start' in prompts.columns:
+            time_col = 'start'
+        else:
+            available_cols = list(prompts.columns)
+            raise KeyError(
+                f"Prompt time column not found. Expected 'time' or 'start', got: {available_cols}"
+            )
+        if 'name' in prompts.columns:
+            label_col = 'name'
+        elif 'prompt' in prompts.columns:
+            label_col = 'prompt'
+        else:
+            available_cols = list(prompts.columns)
+            raise KeyError(
+                f"Prompt label column not found. Expected 'name' or 'prompt', got: {available_cols}"
+            )
+        prompt_times = prompts[time_col].values
+        prompt_names = prompts[label_col].values
         prompt_idx = 0
         # For each sample, check if a gesture occurs at that timestamp
         for i, t in enumerate(timestamps):
@@ -528,6 +551,9 @@ if __name__ == '__main__':
         final_df = pd.concat(results, ignore_index=True)
 
     if any_data_processed:
-        final_df.to_csv(os.path.join(DATA_FOLDER, 'features_emg_data.csv'))
+        repo_root = Path(__file__).resolve().parents[1]
+        output_dir = repo_root / "data" / "interim"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        final_df.to_csv(output_dir / "features_emg_data.csv", index=False)
     else:
         pass
