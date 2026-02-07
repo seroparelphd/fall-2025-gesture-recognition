@@ -27,8 +27,8 @@ python -m generic_neuromotor_interface.scripts.download_data --task discrete_ges
 
 **2. Extract features:**
 ```bash
-cd fall-2025-gesture-recognition/python
-python feature_extraction.py -i ~/emg_data
+cd fall-2025-gesture-recognition
+python src/feature_extraction.py -i ~/emg_data
 ```
 
 **3. One-click reproduction:** For a one-click reproduction of the entire analysis, run: `./run_pipeline.sh`
@@ -39,16 +39,16 @@ python feature_extraction.py -i ~/emg_data
 
 | Step | File | Primary Output Artifact |
 | :--- | :--- | :--- |
-| Extraction | `python/feature_extraction.py` | `features_emg_data.csv` (written to the input data directory) |
+| Extraction | `src/feature_extraction.py` | `features_emg_data.csv` (written to the input data directory) |
 | EDA | `notebooks/eda.ipynb` | `data/processed/features_emg_data_cleaned.csv` |
 | Selection | `notebooks/feature_selection.ipynb` | `results/feature_selection.csv` and `data/processed/train_calib_selected.csv` |
 | Modeling | `notebooks/modeling_experiments.ipynb` | `results/model_comparison.csv` |
+| Final Results | `notebooks/final_results.ipynb` | `reports/final_results.html` |
 
 ## Engineering Challenges & Solutions
 
 - **Missing Class Handling:** Some users had rare gestures that could disappear from a fold (e.g., User 51), causing non-contiguous class IDs and model crashes. The fix was a per-fold label re-encoding step inside cross-validation so each train/test split uses contiguous labels before fitting.
 - **End-to-End Pipeline Automation:** The pipeline now runs from ~33GB of raw EMG data through feature extraction, modeling, and a finished HTML report with a single command (`./run_pipeline.sh`), making the full analysis reproducible end-to-end.
-| Final Results | `notebooks/final_results.ipynb` | Final plots and analysis outputs |
 
 To run end-to-end with documented ordering, see `run_pipeline.sh`.
 

@@ -7,7 +7,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "1) Feature extraction (produces features_emg_data.csv)"
-python3 "${ROOT_DIR}/python/feature_extraction.py" -i "${HOME}/emg_data"
+python3 "${ROOT_DIR}/src/feature_extraction.py" -i "${HOME}/emg_data"
 
 echo "2) EDA (cleans data; outputs processed CSVs)"
 jupyter nbconvert --execute --to notebook --inplace "${ROOT_DIR}/notebooks/eda.ipynb"
@@ -20,5 +20,7 @@ jupyter nbconvert --execute --to notebook --inplace "${ROOT_DIR}/notebooks/model
 
 echo "5) Final results (analysis and plots)"
 jupyter nbconvert --execute --to notebook --inplace "${ROOT_DIR}/notebooks/final_results.ipynb"
+echo "6) Export final results HTML to reports/"
+jupyter nbconvert --execute --to html --output-dir "${ROOT_DIR}/reports" "${ROOT_DIR}/notebooks/final_results.ipynb"
 
 echo "Pipeline complete."
