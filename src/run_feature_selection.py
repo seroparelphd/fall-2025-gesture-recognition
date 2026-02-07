@@ -162,8 +162,8 @@ def main() -> None:
     per_user_stats_df = pd.DataFrame.from_dict(feature_importance_stats, orient='index')
 
     # Correlation matrix for pruning
-    STARTING_POOL_SIZE = 50
-    CORRELATION_THRESHOLD = 0.7
+    STARTING_POOL_SIZE = 87
+    CORRELATION_THRESHOLD = 0.875
     topN_features = feature_importance_df.head(STARTING_POOL_SIZE)['feature'].tolist()
     corr_df = df_train[topN_features].corr()
 
