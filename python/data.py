@@ -25,9 +25,6 @@ from typing import Any, ClassVar
 import h5py
 import numpy as np
 
-# from emg2pose import transforms
-# from emg2pose.transforms import Transform
-# from emg2pose.utils import get_contiguous_ones, get_ik_failures_mask
 
 
 @dataclass
@@ -178,9 +175,6 @@ class WindowedEmgDataset(Path):
     stride: InitVar[int | None] = None
     padding: InitVar[tuple[int, int]] = (0, 0)
     jitter: bool = False
-    # transform: Transform[np.ndarray, torch.Tensor] = field(
-    #     default_factory=transforms.ExtractToTensor
-    # )
     skip_ik_failures: bool = False
 
     def __post_init__(
@@ -272,16 +266,9 @@ class WindowedEmgDataset(Path):
 
         # Extract EMG tensor corresponding to the window
         emg = self.transform(window)
-        # assert torch.is_tensor(emg)
-
         # Extract joint angle labels
         joint_angles = window[Emg2PoseSessionData.JOINT_ANGLES]
-        # joint_angles = torch.as_tensor(joint_angles)
-
-        # # Mask of samples without IK failures
-        # no_ik_failure = torch.as_tensor(
-        #     self.session.no_ik_failure[window_start:window_end]
-        # )
+        no_ik_failure = None
         return {
             "emg": emg.T,  # CT
             "joint_angles": joint_angles.T,  # CT

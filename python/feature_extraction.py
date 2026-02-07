@@ -82,10 +82,8 @@ def get_gesture_stage_times(stages,
     '''
 
     if not stages.empty:
-        #for each timestamp check if it belongs to each stage
         conditions = [np.logical_and((stages.start[i] <= timestamps),(stages.end[i] >= timestamps)) for i in range(len(stages))]
         choices = stages.name
-        #for each timestamp select the corresponding stage name
         stage_labels = np.select(conditions,choices)
 
     return stage_labels
@@ -150,8 +148,7 @@ def get_large_event_array(emg: np.array,
     time_rel = np.arange(window_size[0], window_size[1])/sample_rate 
     lowcut = np.where(time_rel > lowend)[0][0]
     emg_windowed = np.zeros((len(gest_indices), int(np.diff(window_size)[0]), emg.shape[1]))
-    # loop through waveforms of gestures
-    for i, index in enumerate(gest_indices): # loop through waveforms of gestures
+    for i, index in enumerate(gest_indices):
         start = int(window_size[0] + index) #non-shifted search window, 0 is prompt time
         stop = int(window_size[1] + index)
         emg_windowed[i,:,:] = emg[start:stop,:]
@@ -173,12 +170,9 @@ def get_large_event_array(emg: np.array,
             try:
                 # else first event that reaches a zscore of 1.65, alpha=0.05
                 large_event = np.where(np.max(zscore_windowed[i, lowcut:, :], axis=1) > 1.65)[0][0]
-                print('\t\t\tLower threshold used', gesture_name, i)
             except IndexError:
-                print('\t\t\tCould not find a large event', gesture_name, i)
                 continue
-        except Exception as e:
-            print('\t\t\tError finding large event', gesture_name, i, e)
+        except Exception:
             continue
 
         # new index relative to the start index from this iteration        
@@ -199,12 +193,10 @@ def get_large_event_array(emg: np.array,
             zscore_trimmed[i, :, :] = window_z
         elif window_emg.shape[0] > 0 and window_emg.shape[0] < target_len:
             # Pad short windows with zeros to match expected shape
-            print('\t\t\tEvent at end of the windowed area', gesture_name, i)
             emg_trimmed[i, :window_emg.shape[0], :] = window_emg
             zscore_trimmed[i, :window_z.shape[0], :] = window_z
         else:
             # Empty or invalid slice; skip this gesture instance
-            print('\t\t\tWindow too short; skipping', gesture_name, i)
             continue
 
     if save:
@@ -349,7 +341,6 @@ def column_names(name, n_channel):
 
 def process_user_file(file: str, savefig: bool, fps: int, window_size: np.array, trim_window: np.array, data_folder: str):
     basename = os.path.basename(file)  # Get just the filename (not the full path)
-    print(f"\nProcessing new file: {basename}")  # Print when starting a new file
 
     parts = basename.split('_')
     user_number = parts[3]  # Extract user_number from filename
@@ -364,10 +355,7 @@ def process_user_file(file: str, savefig: bool, fps: int, window_size: np.array,
 
     n_samples, n_channels = emg.shape
 
-    print('\t Getting gestures')
     gesture_labels, n_gestures = get_gesture_prompt_times(prompts, time_array)
-    print('\t\t Found {} gestures'.format(n_gestures))
-    print('\t Getting stages')
     stage_labels = get_gesture_stage_times(stages, time_array)
 
     all_gestures = np.unique(gesture_labels)
@@ -405,10 +393,8 @@ def process_user_file(file: str, savefig: bool, fps: int, window_size: np.array,
     for gesture in all_gestures:
         if gesture == '': # skip empty gestures
             continue
-        print('\t\t', gesture)
 
         gest_indices = np.where(gesture_labels == gesture)[0] # find index of these gestures
-        # print(stage_labels[gest_indices])
 
         gesture_n = len(gest_indices)
         total_gestures += gesture_n
@@ -470,7 +456,6 @@ def process_user_file(file: str, savefig: bool, fps: int, window_size: np.array,
                 try:
                     highfreq, maxpower, freq_range = fft_windowed(emg_trimmed[t,:,i], sample_rate=2000, hanning=True)
                 except:
-                    print('\t\t\t\tCould not find fft information for index {0}, channel {1}'.format(t, i))
                     highfreq = np.nan
                     maxpower = np.nan
                     freq_range = [np.nan, np.nan]
@@ -484,7 +469,6 @@ def process_user_file(file: str, savefig: bool, fps: int, window_size: np.array,
                 current_DF.loc[curr, high_freq_list[i]] = freq_range[1]
                 current_DF.loc[curr, low_freq_list[i]] = freq_range[0]
                 current_DF.loc[curr, halfwidth_list[i]] = np.diff(freq_range)
-    print("Processed {} gestures".format(total_gestures))
     return current_DF
 
 
@@ -546,4 +530,4 @@ if __name__ == '__main__':
     if any_data_processed:
         final_df.to_csv(os.path.join(DATA_FOLDER, 'features_emg_data.csv'))
     else:
-        print("No data processed; skipping CSV export.")
+        pass
