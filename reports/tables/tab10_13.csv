@@ -1,4 +1,0 @@
-Metric,Value,Dataset
-F1_Macro,0.39768289408290475,Holdout_Test
-Accuracy,0.4687223369725583,Holdout_Test
-Classification_Error_Rate,0.5312776630274417,Holdout_Test

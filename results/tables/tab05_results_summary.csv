@@ -1,5 +1,0 @@
-Method,Outliers,Percentage
-Z-score,2134,45.991379310344826
-Isolation Forest,464,10.0
-Boxplot (IQR),3731,80.40948275862068
-Gamma Distribution,105,2.2629310344827585

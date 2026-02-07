@@ -1,9 +1,0 @@
-Model,Mean_F1_Macro,Std_F1_Macro,Mean_Accuracy,Std_Accuracy,F1_Rank
-Logit_All_L2,0.7829,0.0944,0.8005,0.0918,1
-Logit_Weighted_All_L2,0.7795,0.0969,0.8008,0.0941,2
-XGBoost,0.5955,0.0634,0.6761,0.1002,3
-Logit_L2,0.5922,0.0514,0.6841,0.0793,4
-Logit_Weighted_L2,0.5912,0.0425,0.6619,0.0658,5
-RandomForest,0.56,0.0454,0.6362,0.0819,6
-DecisionTree,0.4619,0.0376,0.5489,0.0671,7
-DummyClassifier,0.1056,0.0253,0.1576,0.0478,8
