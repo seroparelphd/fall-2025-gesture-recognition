@@ -6,6 +6,24 @@
 
 Implementing and evaluating personalized models for discrete hand gesture classification from surface electromyography (sEMG) signals. Our core methodology addresses the necessity of achieving robust within-user generalization (evaluation on the same user's unseen data) due to the high inter-user signal variability inherent in sEMG signatures. The project utilizes the `discrete_gestures` in the `generic-neuromotor-interface` dataset ([Kaifosh et al. 2025](https://doi.org/10.1038/s41586-025-09255-w)) to support robust wearable device design.
 
+## TL;DR / Key Results
+
+**Executive Summary:** Developed a gesture recognition pipeline using the Meta Reality Labs neuromotor interface dataset. By optimizing feature selection (reducing inputs from 160 → 37), I achieved **0.71 F1-Score**, matching the performance of complex ensembles (XGBoost) with a significantly lighter, interpretable Logistic Regression model.
+
+![Model Performance](results/final/model_comparison_story.png)
+Model Comparison: The L2-regularized Logistic Regression with 37 selected features (Blue) outperforms the full 160-feature model and tree-based ensembles, demonstrating that physiological feature selection yields the most generalizable solution.
+
+![Feature Importance](results/final/feature_importance_all_37.png)
+Dimensionality Reduction: The feature selection pipeline identified 37 critical metrics, heavily weighting the RMS of Channels 4 and 5. This validates the physiological relevance of the model.
+
+## Key Visualizations
+
+![Classification Errors](results/figures/confusion_matrix_analysis.png)
+(a) Normalized Logit\_L2 confusion matrix (per-class recall). (b) Off-diagonal-only view highlighting misclassification patterns between gestures.
+
+<details>
+<summary>⚙️ Installation & Usage</summary>
+
 ## Key Performance Indicators (KPIs)
 
 * **Primary KPI:** F1 Macro score, to maximize classification performance across all nine discrete gesture classes, robustly addressing challenges posed by multi-class classification and potential class imbalance stemming from gesture/stage combinations with low counts.
@@ -57,6 +75,11 @@ python src/feature_extraction.py -i ~/emg_data
 
 To run end-to-end with documented ordering, see `run_pipeline.sh`.
 
+</details>
+
+<details>
+<summary>📊 Full Tables</summary>
+
 ## Project Deliverables and Final Results
 
 | Deliverable | Description |
@@ -69,16 +92,10 @@ To run end-to-end with documented ordering, see `run_pipeline.sh`.
 | Final Results | **Strong within-user generalization** achieved on calibration data splits (CV Mean F1 Macro = $\mathbf{0.7060}$). Compared to the original RandomForest baseline (Mean F1 Macro = 0.609939, Mean Accuracy = 0.640239), **Logit\_L2** improved performance (Mean F1 Macro = $\mathbf{0.7060}$, Mean Accuracy = $\mathbf{0.7257}$). **Poor generalization to unseen gestures** (Holdout Test F1 Macro = $\mathbf{0.390907}$, Holdout Test Accuracy = $\mathbf{0.456762}$), confirming significant performance heterogeneity across users. Analysis: `thumb_out` showed the highest recall improvement (16%) when additional training samples were available. |
 | Final Documentation | Executive summary (`summary.pdf`) and presentation slide deck (`deliverables/presentation.pdf`) finalized and stored. |
 
-## Key Visualizations
+</details>
 
-![Model Performance](results/final/model_comparison_story.png)
-Model Comparison: The L2-regularized Logistic Regression with 37 selected features (Blue) outperforms the full 160-feature model and tree-based ensembles, demonstrating that physiological feature selection yields the most generalizable solution.
-
-![Classification Errors](results/figures/confusion_matrix_analysis.png)
-(a) Normalized confusion matrix (per-class recall). (b) Off-diagonal-only view highlighting misclassification patterns between gestures.
-
-![Feature Importance](results/final/feature_importance_all_37.png)
-Dimensionality Reduction: The feature selection pipeline identified 37 critical metrics, heavily weighting the RMS of Channels 4 and 5. This validates the physiological relevance of the model.
+<details>
+<summary>📂 View Repository Structure</summary>
 
 ## Repository Structure Overview
 
@@ -95,6 +112,8 @@ Dimensionality Reduction: The feature selection pipeline identified 37 critical 
 │   └── run_modeling.py           # Heavy compute script
 └── notebooks/      # Lightweight reporting only
 ```
+
+</details>
 
 ## References
 
