@@ -72,7 +72,7 @@ To run end-to-end with documented ordering, see `run_pipeline.sh`.
 ## Key Visualizations
 
 ![Model Performance](results/final/model_comparison_story.png)
-Model Performance: Our optimized logistic regression (Meta Blue) outperforms both the full-feature version and complex ensembles, proving that physiological feature selection (160 → 37 features) drives better generalization than brute force.
+Model Comparison: The L2-regularized Logistic Regression with 37 selected features (Blue) outperforms the full 160-feature model and tree-based ensembles, demonstrating that physiological feature selection yields the most generalizable solution.
 
 ![Classification Errors](results/figures/confusion_matrix_analysis.png)
 Confusion matrix showing classification performance. Off-diagonal elements highlight specific gestures that are frequently misclassified.
