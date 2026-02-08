@@ -11,15 +11,18 @@ Implementing and evaluating personalized models for discrete hand gesture classi
 **Executive Summary:** Developed a gesture recognition pipeline using the Meta Reality Labs neuromotor interface dataset. By optimizing feature selection (reducing inputs from 160 → 37), I achieved **0.71 F1-Score**, matching the performance of complex ensembles (XGBoost) with a significantly lighter, interpretable Logistic Regression model.
 
 ![Model Performance](results/final/model_comparison_story.png)
-Model Comparison: The L2-regularized Logistic Regression with 37 selected features (Blue) outperforms the full 160-feature model and tree-based ensembles, demonstrating that physiological feature selection yields the most generalizable solution.
+Model Comparison: The **L2-regularized logistic regression** with 37 selected features (blue) outperforms the full 160-feature model and tree-based ensembles, demonstrating that physiological feature selection yields the most generalizable solution.
 
 ![Feature Importance](results/final/feature_importance_all_37.png)
-Dimensionality Reduction: The feature selection pipeline identified 37 critical metrics, heavily weighting the RMS of Channels 4 and 5. This validates the physiological relevance of the model.
+Dimensionality Reduction: The feature selection pipeline identified 37 critical metrics, heavily weighting the RMS of channels 4 and 5. This validates the physiological relevance of the model.
 
-## Key Visualizations
+## Detailed Error Analysis
 
 ![Classification Errors](results/figures/confusion_matrix_analysis.png)
-(a) Normalized Logit\_L2 confusion matrix (per-class recall). (b) Off-diagonal-only view highlighting misclassification patterns between gestures.
+(a) Normalized **L2-regularized logistic regression** confusion matrix (per-class recall). (b) Off-diagonal-only view highlighting misclassification patterns between gestures.
+
+![User Generalization](results/figures/user_performance_boxplot.png)
+User Generalization: Distribution of F1 scores across 100 participants. The compact interquartile range indicates consistent performance across diverse users.
 
 <details>
 <summary>⚙️ Installation & Usage</summary>
