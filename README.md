@@ -75,7 +75,7 @@ To run end-to-end with documented ordering, see `run_pipeline.sh`.
 Model Comparison: The L2-regularized Logistic Regression with 37 selected features (Blue) outperforms the full 160-feature model and tree-based ensembles, demonstrating that physiological feature selection yields the most generalizable solution.
 
 ![Classification Errors](results/figures/confusion_matrix_analysis.png)
-Confusion matrix showing classification performance. Off-diagonal elements highlight specific gestures that are frequently misclassified.
+(a) Normalized confusion matrix (per-class recall). (b) Off-diagonal-only view highlighting misclassification patterns between gestures.
 
 ![Feature Importance](results/final/feature_importance_all_37.png)
 Dimensionality Reduction: The feature selection pipeline identified 37 critical metrics, heavily weighting the RMS of Channels 4 and 5. This validates the physiological relevance of the model.
