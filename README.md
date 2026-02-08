@@ -8,7 +8,7 @@ Implementing and evaluating personalized models for discrete hand gesture classi
 
 ## TL;DR / Key Results
 
-**Executive Summary:** Developed a gesture recognition pipeline using the Meta Reality Labs neuromotor interface dataset. By optimizing feature selection (reducing inputs from 160 → 37), I achieved **0.71 F1-Score**, matching the performance of complex ensembles (XGBoost) with a significantly lighter, interpretable Logistic Regression model.
+**Executive Summary:** Developed a gesture recognition pipeline using the Meta Reality Labs neuromotor interface dataset. By optimizing feature selection (reducing inputs from 160 → 37), I achieved **0.71 F1-Score**, matching the performance of complex ensembles (XGBoost) with a significantly lighter, interpretable logistic regression model.
 
 ![Model Performance](results/final/model_comparison_story.png)
 Model Comparison: The **L2-regularized logistic regression** with 37 selected features (blue) outperforms the full 160-feature model and tree-based ensembles, demonstrating that physiological feature selection yields the most generalizable solution.
@@ -18,11 +18,11 @@ Dimensionality Reduction: The feature selection pipeline identified 37 critical 
 
 ## Detailed Error Analysis
 
+![User Generalization](results/figures/user_performance_boxplot.png)
+User Generalization: Distribution of F1-scores across 100 participants. The high density of points around the mean and the compact interquartile range demonstrate that the l2-regularized logistic regression generalizes robustly across the diverse neuromotor signatures in the dataset.
+
 ![Classification Errors](results/figures/confusion_matrix_analysis.png)
 (a) Normalized **L2-regularized logistic regression** confusion matrix (per-class recall). (b) Off-diagonal-only view highlighting misclassification patterns between gestures.
-
-![User Generalization](results/figures/user_performance_boxplot.png)
-User Generalization: Distribution of F1 scores across 100 participants. The compact interquartile range indicates consistent performance across diverse users.
 
 <details>
 <summary>⚙️ Installation & Usage</summary>
@@ -91,8 +91,8 @@ To run end-to-end with documented ordering, see `run_pipeline.sh`.
 | Data Acquisition & Preparation | Raw sEMG data for 100 participants successfully loaded. Data cleaned, aligned (event-based peak detection), and preprocessed using Z-score normalization applied separately to each of the 16 EMG channels |
 | Evaluation Plan | Personalized split implemented using stratified 80/20 K-Fold per user (within-user CV) to ensure evaluation mirrors deployment scenarios |
 | Feature Engineering | Feature extraction yielded 160 features. Feature selection (by random forest ranking and correlation pruning) successfully reduced the feature space to 37 non-redundant metrics. Key features included RMS metrics, concentrated heavily on sEMG channels ch05, ch04, and ch10. |
-| Modeling & Validation | Evaluated trivial, linear (Logistic Regression), and tree-based models (random forest, XGBoost). Final model selected: **Logistic Regression with L2 regularization (Logit\_L2)** due to robust CV performance and interpretability. |
-| Final Results | **Strong within-user generalization** achieved on calibration data splits (CV Mean F1 Macro = $\mathbf{0.7060}$). Compared to the original RandomForest baseline (Mean F1 Macro = 0.609939, Mean Accuracy = 0.640239), **Logit\_L2** improved performance (Mean F1 Macro = $\mathbf{0.7060}$, Mean Accuracy = $\mathbf{0.7257}$). **Poor generalization to unseen gestures** (Holdout Test F1 Macro = $\mathbf{0.390907}$, Holdout Test Accuracy = $\mathbf{0.456762}$), confirming significant performance heterogeneity across users. Analysis: `thumb_out` showed the highest recall improvement (16%) when additional training samples were available. |
+| Modeling & Validation | Evaluated trivial, linear (logistic regression), and tree-based models (random forest, XGBoost). Final model selected: **l2-regularized logistic regression** due to robust CV performance and interpretability. |
+| Final Results | **Strong within-user generalization** achieved on calibration data splits (CV Mean F1 Macro = $\mathbf{0.7060}$). Compared to the original RandomForest baseline (Mean F1 Macro = 0.609939, Mean Accuracy = 0.640239), **l2-regularized logistic regression** improved performance (Mean F1 Macro = $\mathbf{0.7060}$, Mean Accuracy = $\mathbf{0.7257}$). **Poor generalization to unseen gestures** (Holdout Test F1 Macro = $\mathbf{0.390907}$, Holdout Test Accuracy = $\mathbf{0.456762}$), confirming significant performance heterogeneity across users. Analysis: `thumb_out` showed the highest recall improvement (16%) when additional training samples were available. |
 | Final Documentation | Executive summary (`summary.pdf`) and presentation slide deck (`deliverables/presentation.pdf`) finalized and stored. |
 
 </details>
