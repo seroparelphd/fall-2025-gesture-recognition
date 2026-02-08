@@ -49,7 +49,7 @@ run_cmd() {
   fi
 }
 DATA_DIR="${ROOT_DIR}/data/emg_data"
-OUTPUT_FEATURES="${ROOT_DIR}/data/intermediate/features_emg_data.csv"
+OUTPUT_FEATURES="${ROOT_DIR}/data/interim/features_emg_data.csv"
 
 FORCE=0
 VERBOSITY=1

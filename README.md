@@ -58,7 +58,7 @@ python src/feature_extraction.py -i ~/emg_data
 
 | Step | File | Primary Output Artifact |
 | :--- | :--- | :--- |
-| Extraction | `src/feature_extraction.py` | `data/intermediate/features_emg_data.csv` |
+| Extraction | `src/feature_extraction.py` | `data/interim/features_emg_data.csv` |
 | EDA | `notebooks/eda.ipynb` | `data/processed/features_emg_data_cleaned.csv` |
 | Selection (compute) | `src/run_feature_selection.py` | `results/tables/feature_selection.csv` and `data/processed/train_calib_selected.csv` |
 | Selection (report) | `notebooks/feature_selection.ipynb` | `results/figures/` and `results/tables/` |
@@ -101,7 +101,7 @@ To run end-to-end with documented ordering, see `run_pipeline.sh`.
 
 ```
 ├── data/
-│   ├── intermediate/    # Intermediate processing (e.g., raw features)
+│   ├── interim/    # Intermediate processing (e.g., raw features)
 │   └── processed/  # Cleaned data for modeling
 ├── results/
 │   ├── figures/    # Generated plots (PNG/SVG)
