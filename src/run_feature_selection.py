@@ -22,8 +22,8 @@ from scipy.spatial.distance import squareform
 
 def main() -> None:
     root = Path(__file__).resolve().parents[1]
-    data_dir = root / "data" / "processed"
-    results_dir = root / "results" / "tables"
+    data_dir = Path(os.environ.get("PIPELINE_DATA_DIR", root / "data" / "processed"))
+    results_dir = Path(os.environ.get("PIPELINE_RESULTS_DIR", root / "results" / "tables"))
     results_dir.mkdir(parents=True, exist_ok=True)
 
     cleaned_data_path = data_dir / "features_emg_data_cleaned.csv"

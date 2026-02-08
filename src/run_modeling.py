@@ -6,6 +6,7 @@ Trains models with within-user CV and writes model comparison artifacts.
 from __future__ import annotations
 
 from pathlib import Path
+import os
 
 import numpy as np
 import pandas as pd
@@ -102,8 +103,8 @@ def run_personalization_cv(model, X, y, groups, name, k_folds):
 
 def main() -> None:
     root = Path(__file__).resolve().parents[1]
-    data_dir = root / "data" / "processed"
-    results_dir = root / "results" / "tables"
+    data_dir = Path(os.environ.get("PIPELINE_DATA_DIR", root / "data" / "processed"))
+    results_dir = Path(os.environ.get("PIPELINE_RESULTS_DIR", root / "results" / "tables"))
     results_dir.mkdir(parents=True, exist_ok=True)
 
     train_full = data_dir / "train_calib_full.csv"
@@ -174,6 +175,8 @@ def main() -> None:
     }
 
     full_feature_models = {'Logit_All_L2', 'Logit_Weighted_All_L2'}
+    if os.environ.get("PIPELINE_SKIP_XGBOOST") == "1":
+        models_to_test.pop('XGBoost', None)
 
     results = []
     all_user_results = []

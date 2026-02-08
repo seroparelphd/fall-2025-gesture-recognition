@@ -536,7 +536,9 @@ if __name__ == '__main__':
     window_size = np.array([-1,1])
 
     any_data_processed = False
-    results = Parallel(n_jobs=-1, prefer="processes")(
+    n_jobs = int(os.environ.get("PIPELINE_N_JOBS", "-1"))
+    prefer = os.environ.get("PIPELINE_PARALLEL_BACKEND", "processes")
+    results = Parallel(n_jobs=n_jobs, prefer=prefer)(
         delayed(process_user_file)(
             file, savefig, fps, window_size, trim_window, DATA_FOLDER
         )
@@ -552,7 +554,8 @@ if __name__ == '__main__':
 
     if any_data_processed:
         repo_root = Path(__file__).resolve().parents[1]
-        output_dir = repo_root / "data" / "interim"
+        override_dir = os.environ.get("PIPELINE_INTERIM_DIR")
+        output_dir = Path(override_dir) if override_dir else (repo_root / "data" / "interim")
         output_dir.mkdir(parents=True, exist_ok=True)
         final_df.to_csv(output_dir / "features_emg_data.csv", index=False)
     else:
