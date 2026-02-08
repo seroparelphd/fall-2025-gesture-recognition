@@ -4,22 +4,22 @@
 
 **Erdős Institute Data Science Boot Camp Fall 2025 Project**
 
-Implementing and evaluating personalized models for discrete hand gesture classification from surface electromyography (sEMG) signals. Our core methodology addresses the necessity of achieving robust within-user generalization (evaluation on the same user's unseen data) due to the high inter-user signal variability inherent in sEMG signatures. The project utilizes the `discrete_gestures` in the `generic-neuromotor-interface` dataset ([Kaifosh et al. 2025](https://doi.org/10.1038/s41586-025-09255-w)) to support robust wearable device design.
+This project implements and evaluates personalized models for discrete hand gesture classification from surface electromyography (sEMG) signals. Our core methodology addresses the necessity of achieving robust within-user generalization (evaluation on the same user's unseen data) due to the high inter-user signal variability inherent in sEMG signatures. The project utilizes the `discrete_gestures` in the `generic-neuromotor-interface` dataset ([Kaifosh et al. 2025](https://doi.org/10.1038/s41586-025-09255-w)) to support robust wearable device design.
 
 ## TL;DR
 
-Developed a gesture recognition pipeline using the Meta Reality Labs neuromotor interface dataset. By optimizing feature selection (reducing inputs from 160 → 37), we achieved **0.71 F1-Score**, matching the performance of complex ensembles (XGBoost) with a significantly lighter, interpretable logistic regression model.
+We developed a gesture recognition pipeline using the Meta Reality Labs neuromotor interface dataset. By optimizing feature selection (reducing inputs from 160 → 37), we achieved **0.71 F1-Score**, matching the performance of complex ensembles (XGBoost) with a significantly lighter, interpretable logistic regression model.
 
 ![Model Performance](results/final/model_comparison_story.png)
-Model Comparison: The **L2-regularized logistic regression** with 37 selected features (blue) outperforms the full 160-feature model and tree-based ensembles, demonstrating that physiological feature selection yields the most generalizable solution.
+Figure 1: Model Comparison. The **L2-regularized logistic regression** with 37 selected features (blue) outperforms the full 160-feature model and tree-based ensembles, demonstrating that physiological feature selection yields the most generalizable solution.
 
 ## Key Visualizations
 
 ![Feature Importance](results/final/feature_importance_all_37.png)
-Figure 1: Feature Importance Analysis. Our pipeline identified the RMS of channels 4 and 5 as the most critical predictors, validating the physiological relevance of the selected feature set.
+Figure 2: Feature Importance Analysis. Our pipeline identified the RMS of channels 4 and 5 as the most critical predictors, validating the physiological relevance of the selected feature set.
 
 ![Classification Errors](results/figures/confusion_matrix_analysis.png)
-Figure 2: detailed Error Analysis. (a) Normalized confusion matrix showing per-class recall. (b) Off-diagonal misclassifications highlighting specific gesture confusions.
+Figure 3: Error Analysis. (a) Normalized confusion matrix showing per-class recall. (b) Off-diagonal misclassifications highlighting specific gesture confusions.
 
 <details>
 <summary>⚙️ Installation & Usage</summary>
