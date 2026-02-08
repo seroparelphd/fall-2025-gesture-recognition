@@ -1,6 +1,6 @@
 # fall-2025-gesture-recognition
 
-**Authors:** Brian R. Mullen, Carrie Clark, Revati Jadhav, Philip Nelson, Sero Toriano Parel
+**Authors:** Sero Toriano Parel, Brian R. Mullen, Carrie Clark, Revati Jadhav, Philip Nelson
 
 **Erdős Institute Data Science Boot Camp Fall 2025 Project**
 
@@ -8,18 +8,18 @@ This project implements and evaluates personalized models for discrete hand gest
 
 ## TL;DR
 
-We developed a gesture recognition pipeline using the Meta Reality Labs neuromotor interface dataset. By optimizing feature selection (reducing inputs from 160 → 37), we achieved **0.71 F1-Score**, matching the performance of complex ensembles (XGBoost) with a significantly lighter, interpretable logistic regression model.
+We developed a gesture recognition pipeline using the Meta Reality Labs neuromotor interface dataset. By optimizing feature selection (reducing inputs from 160 → 37), we achieved 0.71 F1-Score, matching the performance of complex ensembles (XGBoost) with a significantly lighter, interpretable logistic regression model.
 
 ![Model Performance](results/final/model_comparison_story.png)
-Figure 1: Model Comparison. The **L2-regularized logistic regression** with 37 selected features (blue) outperforms the full 160-feature model and tree-based ensembles, demonstrating that physiological feature selection yields the most generalizable solution.
+**Figure 1:** Model Comparison. The **L2-regularized logistic regression** with 37 selected features (blue) outperforms the full 160-feature model and tree-based ensembles, demonstrating that physiological feature selection yields the most generalizable solution.
 
 ## Key Visualizations
 
 ![Feature Importance](results/final/feature_importance_all_37.png)
-Figure 2: Feature Importance Analysis. Our pipeline identified the RMS of channels 4 and 5 as the most critical predictors, validating the physiological relevance of the selected feature set.
+**Figure 2:** Feature Importance Analysis. Our pipeline identified the root mean square (RMS) of channels 4 and 5 as the most critical predictors, validating the physiological relevance of the selected feature set.
 
 ![Classification Errors](results/figures/confusion_matrix_analysis.png)
-Figure 3: Error Analysis. (a) Normalized confusion matrix showing per-class recall. (b) Off-diagonal misclassifications highlighting specific gesture confusions.
+**Figure 3:** Error Analysis. (a) Normalized confusion matrix showing per-class recall. (b) Off-diagonal misclassifications highlighting specific gesture confusions.
 
 <details>
 <summary>⚙️ Installation & Usage</summary>
@@ -58,7 +58,7 @@ python src/feature_extraction.py -i ~/emg_data
 
 | Step | File | Primary Output Artifact |
 | :--- | :--- | :--- |
-| Extraction | `src/feature_extraction.py` | `data/interim/features_emg_data.csv` |
+| Extraction | `src/feature_extraction.py` | `data/intermediate/features_emg_data.csv` |
 | EDA | `notebooks/eda.ipynb` | `data/processed/features_emg_data_cleaned.csv` |
 | Selection (compute) | `src/run_feature_selection.py` | `results/tables/feature_selection.csv` and `data/processed/train_calib_selected.csv` |
 | Selection (report) | `notebooks/feature_selection.ipynb` | `results/figures/` and `results/tables/` |
@@ -87,7 +87,7 @@ To run end-to-end with documented ordering, see `run_pipeline.sh`.
 | Problem Definition & KPIs | Project guiding question, stakeholders, and KPI definitions finalized (`kpis.md`) |
 | Data Acquisition & Preparation | Raw sEMG data for 100 participants successfully loaded. Data cleaned, aligned (event-based peak detection), and preprocessed using Z-score normalization applied separately to each of the 16 EMG channels |
 | Evaluation Plan | Personalized split implemented using stratified 80/20 K-Fold per user (within-user CV) to ensure evaluation mirrors deployment scenarios |
-| Feature Engineering | Feature extraction yielded 160 features. Feature selection (by random forest ranking and correlation pruning) successfully reduced the feature space to 37 non-redundant metrics. Key features included RMS metrics, concentrated heavily on sEMG channels ch05, ch04, and ch10. |
+| Feature Engineering | Feature extraction yielded 160 features. Feature selection (by random forest ranking and correlation pruning) successfully reduced the feature space to 37 non-redundant metrics. Key features included root mean square (RMS) metrics, concentrated heavily on sEMG channels ch05, ch04, and ch10. |
 | Modeling & Validation | Evaluated trivial, linear (logistic regression), and tree-based models (random forest, XGBoost). Final model selected: **l2-regularized logistic regression** due to robust CV performance and interpretability. |
 | Final Results | **Strong within-user generalization** achieved on calibration data splits (CV Mean F1 Macro = $\mathbf{0.7060}$). Compared to the original RandomForest baseline (Mean F1 Macro = 0.609939, Mean Accuracy = 0.640239), **l2-regularized logistic regression** improved performance (Mean F1 Macro = $\mathbf{0.7060}$, Mean Accuracy = $\mathbf{0.7257}$). **Poor generalization to unseen gestures** (Holdout Test F1 Macro = $\mathbf{0.390907}$, Holdout Test Accuracy = $\mathbf{0.456762}$), confirming significant performance heterogeneity across users. Analysis: `thumb_out` showed the highest recall improvement (16%) when additional training samples were available. |
 | Final Documentation | Executive summary (`summary.pdf`) and presentation slide deck (`deliverables/presentation.pdf`) finalized and stored. |
@@ -95,13 +95,13 @@ To run end-to-end with documented ordering, see `run_pipeline.sh`.
 </details>
 
 <details>
-<summary>📂 View Repository Structure</summary>
+<summary>📂 Repository Structure</summary>
 
 ## Repository Structure Overview
 
 ```
 ├── data/
-│   ├── interim/    # Intermediate processing (e.g., raw features)
+│   ├── intermediate/    # Intermediate processing (e.g., raw features)
 │   └── processed/  # Cleaned data for modeling
 ├── results/
 │   ├── figures/    # Generated plots (PNG/SVG)
@@ -110,7 +110,7 @@ To run end-to-end with documented ordering, see `run_pipeline.sh`.
 ├── src/
 │   ├── run_feature_selection.py  # Heavy compute script
 │   └── run_modeling.py           # Heavy compute script
-└── notebooks/      # Lightweight reporting only
+└── notebooks/      # Analysis and reporting notebooks
 ```
 
 </details>

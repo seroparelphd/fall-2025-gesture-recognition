@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GroupShuffleSplit
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer, StandardScaler
 from scipy.cluster.hierarchy import linkage, leaves_list
@@ -37,52 +37,62 @@ def main() -> None:
     all_columns = df_no_outliers.columns.tolist()
     feature_cols = [col for col in all_columns if col not in metadata_cols]
 
-    print("🔪 Performing personalization split (train/calibration vs test)...")
+    print("🔪 Performing personalization split (train/calibration vs test) with group-aware splitting...")
     df_no_outliers['stage_gesture'] = df_no_outliers['stage'] + '__' + df_no_outliers['gesture']
-    df_no_outliers['how_many_stage_gesture'] = 'many'
 
-    for user_id in tqdm(df_no_outliers['user'].unique(), desc="Split users"):
-        user_data = df_no_outliers[df_no_outliers['user'] == user_id]
-        for stage_gesture_name in user_data['stage_gesture'].unique():
-            count = user_data['stage_gesture'].value_counts()[stage_gesture_name]
-            if 1 < count < 5:
-                df_no_outliers.loc[(df_no_outliers['stage_gesture'] == stage_gesture_name) & (df_no_outliers['user'] == user_id), 'how_many_stage_gesture'] = 'few'
-            if count == 1:
-                df_no_outliers.loc[(df_no_outliers['stage_gesture'] == stage_gesture_name) & (df_no_outliers['user'] == user_id), 'how_many_stage_gesture'] = 'one'
+    group_candidates = [
+        'trial_id', 'trial', 'repetition', 'rep', 'prompt_idx', 'prompt_index',
+        'trial_index', 'event_index', 'timestamp', 'time', 'start', 'end'
+    ]
+    group_col = next((c for c in group_candidates if c in df_no_outliers.columns), None)
+    if group_col is None:
+        raise ValueError(
+            "No trial/repetition identifier found in cleaned data. "
+            "Add a trial-level column (e.g., 'trial_id' or 'prompt_idx') in feature extraction "
+            "so group-based splitting can prevent temporal leakage."
+        )
 
-    df_one_stage_gesture = df_no_outliers[df_no_outliers['how_many_stage_gesture'] == 'one']
-    df_few_stage_gesture = df_no_outliers[df_no_outliers['how_many_stage_gesture'] == 'few']
-    df_many_stage_gesture = df_no_outliers[df_no_outliers['how_many_stage_gesture'] == 'many']
+    df_no_outliers['group_id'] = (
+        df_no_outliers['user'].astype(str)
+        + '__' + df_no_outliers['stage_gesture'].astype(str)
+        + '__' + df_no_outliers[group_col].astype(str)
+    )
 
     train_pieces, test_pieces = [], []
+    splitter = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=13)
 
-    for user_id in tqdm(df_few_stage_gesture['user'].unique(), desc="Split few-stage"):
-        user_data = df_few_stage_gesture[df_few_stage_gesture['user'] == user_id]
-        for stage_gesture in user_data.stage_gesture.unique():
-            user_train = user_data[user_data['stage_gesture'] == stage_gesture].iloc[1:, :]
-            user_test = user_data[user_data['stage_gesture'] == stage_gesture].iloc[[0]]
-            train_pieces.append(user_train)
-            test_pieces.append(user_test)
+    for user_id in tqdm(df_no_outliers['user'].unique(), desc="Split users (group-aware)"):
+        user_data = df_no_outliers[df_no_outliers['user'] == user_id]
+        for stage_gesture in user_data['stage_gesture'].unique():
+            subset = user_data[user_data['stage_gesture'] == stage_gesture]
+            groups = subset['group_id']
+            n_groups = groups.nunique()
 
-    for user_id in tqdm(df_many_stage_gesture['user'].unique(), desc="Split many-stage"):
-        user_data = df_many_stage_gesture[df_many_stage_gesture['user'] == user_id]
-        user_train, user_test = train_test_split(
-            user_data, test_size=0.2, random_state=13, shuffle=True, stratify=user_data.stage_gesture
-        )
-        train_pieces.append(user_train)
-        test_pieces.append(user_test)
+            if n_groups <= 1:
+                train_pieces.append(subset)
+                continue
 
-    df_train = pd.concat(train_pieces + [df_one_stage_gesture])
+            if n_groups < 5:
+                test_group = groups.unique()[0]
+                train_pieces.append(subset[subset['group_id'] != test_group])
+                test_pieces.append(subset[subset['group_id'] == test_group])
+                continue
+
+            train_idx, test_idx = next(splitter.split(subset, groups=groups))
+            train_pieces.append(subset.iloc[train_idx])
+            test_pieces.append(subset.iloc[test_idx])
+
+    df_train = pd.concat(train_pieces)
     df_test = pd.concat(test_pieces)
 
-    df_no_outliers = df_no_outliers.drop(columns=['stage_gesture', 'how_many_stage_gesture'])
-    df_train = df_train.drop(columns=['stage_gesture', 'how_many_stage_gesture'])
-    df_test = df_test.drop(columns=['stage_gesture', 'how_many_stage_gesture'])
+    df_no_outliers = df_no_outliers.drop(columns=['stage_gesture', 'group_id'])
+    df_train = df_train.drop(columns=['stage_gesture', 'group_id'])
+    df_test = df_test.drop(columns=['stage_gesture', 'group_id'])
 
     print(f"📊 Split complete. Train: {df_train.shape}, Test: {df_test.shape}")
 
     # Save full feature sets for modeling
-    print("💾 Saving full feature sets...")
+    print("💾 Saving full feature sets (holdout saved once, never used for selection/CV)...")
     train_full = df_train[['user', 'gesture', 'stage'] + feature_cols].copy()
     test_full = df_test[['user', 'gesture', 'stage'] + feature_cols].copy()
     train_full.to_csv(data_dir / "train_calib_full.csv", index=False)
@@ -99,21 +109,22 @@ def main() -> None:
     # Feature importance
     importance_file = data_dir / "feature_importance_ranking.csv"
     if importance_file.exists():
-        feature_importance_df = pd.read_csv(importance_file)
-    else:
-        print("🧠 Training RandomForest for feature importance...")
-        rf_model = RandomForestClassifier(
-            n_estimators=100,
-            random_state=13,
-            n_jobs=-1,
-        )
-        rf_model.fit(X_train_processed, df_train['gesture'])
-        feature_importance_df = pd.DataFrame({
-            'feature': feature_cols,
-            'importance': rf_model.feature_importances_,
-        }).sort_values('importance', ascending=False)
-        feature_importance_df.to_csv(importance_file, index=False)
-        print("✅ Feature importance saved.")
+        print(f"⚠️ Removing cached feature importance: {importance_file}")
+        importance_file.unlink()
+
+    print("🧠 Training RandomForest for feature importance...")
+    rf_model = RandomForestClassifier(
+        n_estimators=100,
+        random_state=13,
+        n_jobs=-1,
+    )
+    rf_model.fit(X_train_processed, df_train['gesture'])
+    feature_importance_df = pd.DataFrame({
+        'feature': feature_cols,
+        'importance': rf_model.feature_importances_,
+    }).sort_values('importance', ascending=False)
+    feature_importance_df.to_csv(importance_file, index=False)
+    print("✅ Feature importance saved.")
 
     # Per-user importances
     print("📉 Computing per-user feature importance stats...")

@@ -3,7 +3,7 @@
 '''
 Python script to extract features from emg data
 
-Authors: Brian R. Mullen, Sero Toriano Parel, Revati Jadhav, Carrie Clark, Philip Nelson
+Authors: Sero Toriano Parel, Brian R. Mullen, Carrie Clark, Revati Jadhav, Philip Nelson
 Date: 2025-10-15
 
  
@@ -552,7 +552,7 @@ if __name__ == '__main__':
 
     if any_data_processed:
         repo_root = Path(__file__).resolve().parents[1]
-        output_dir = repo_root / "data" / "interim"
+        output_dir = repo_root / "data" / "intermediate"
         output_dir.mkdir(parents=True, exist_ok=True)
         final_df.to_csv(output_dir / "features_emg_data.csv", index=False)
     else:

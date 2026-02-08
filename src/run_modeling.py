@@ -12,6 +12,7 @@ import pandas as pd
 from tqdm import tqdm
 from sklearn.model_selection import StratifiedKFold
 from sklearn.pipeline import Pipeline
+from sklearn.feature_selection import SelectFromModel
 from sklearn.preprocessing import StandardScaler, LabelEncoder, FunctionTransformer
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
@@ -23,6 +24,7 @@ from xgboost import XGBClassifier
 
 RANDOM_STATE = 13
 PERSONALIZATION_K = 5
+SELECTOR_MAX_FEATURES = 37
 
 
 def run_personalization_cv(model, X, y, groups, name, k_folds):
@@ -104,97 +106,84 @@ def main() -> None:
     results_dir = root / "results" / "tables"
     results_dir.mkdir(parents=True, exist_ok=True)
 
-    train_selected = data_dir / "train_calib_selected.csv"
     train_full = data_dir / "train_calib_full.csv"
 
-    if not train_selected.exists() or not train_full.exists():
+    if not train_full.exists():
         raise FileNotFoundError("Missing training data outputs from feature selection step.")
 
     print("🚀 Loading training data...")
-    df_train = pd.read_csv(train_selected)
     df_train_full = pd.read_csv(train_full)
 
-    X = df_train.drop(columns=['user', 'gesture', 'stage'])
-    y = df_train['gesture']
-    groups = df_train['user']
-
     X_full = df_train_full.drop(columns=['user', 'gesture', 'stage'])
+    y = df_train_full['gesture']
+    groups = df_train_full['user']
 
-    preprocessor = Pipeline([('log_transform', FunctionTransformer(np.log1p)), ('scaler', StandardScaler())])
+    selector_estimator = RandomForestClassifier(
+        n_estimators=100,
+        random_state=RANDOM_STATE,
+        n_jobs=1,
+    )
+
+    def build_pipeline(clf, use_selector: bool) -> Pipeline:
+        steps = [
+            ('log_transform', FunctionTransformer(np.log1p)),
+            ('scaler', StandardScaler()),
+        ]
+        if use_selector:
+            steps.append((
+                'selector',
+                SelectFromModel(
+                    selector_estimator,
+                    max_features=SELECTOR_MAX_FEATURES,
+                    threshold=-np.inf
+                )
+            ))
+        steps.append(('clf', clf))
+        return Pipeline(steps)
 
     models_to_test = {
-        'DummyClassifier': Pipeline([
-            ('prep', preprocessor),
-            ('clf', DummyClassifier(strategy='stratified', random_state=RANDOM_STATE))
-        ]),
-        'Logit_L2': Pipeline([
-            ('prep', preprocessor),
-            ('clf', LogisticRegression(
-                solver='lbfgs', max_iter=1000, random_state=RANDOM_STATE
-            ))
-        ]),
-        'RandomForest': Pipeline([
-            ('prep', preprocessor),
-            ('clf', RandomForestClassifier(
-                n_estimators=100, max_depth=6, random_state=RANDOM_STATE, n_jobs=1,
-                class_weight='balanced'
-            ))
-        ]),
-        'DecisionTree': Pipeline([
-            ('prep', preprocessor),
-            ('clf', DecisionTreeClassifier(
-                max_depth=10, random_state=RANDOM_STATE,
-                class_weight='balanced'
-            ))
-        ]),
-        'Logit_Weighted_L2': Pipeline([
-            ('prep', preprocessor),
-            ('clf', LogisticRegression(
-                solver='lbfgs', max_iter=1000, random_state=RANDOM_STATE,
-                class_weight='balanced'
-            ))
-        ]),
-        'Logit_Weighted_All_L2': Pipeline([
-            ('prep', preprocessor),
-            ('clf', LogisticRegression(
-                solver='lbfgs', max_iter=1000, random_state=RANDOM_STATE,
-                class_weight='balanced', C=0.1
-            ))
-        ]),
-        'Logit_All_L2': Pipeline([
-            ('prep', preprocessor),
-            ('clf', LogisticRegression(
-                solver='lbfgs', max_iter=1000, random_state=RANDOM_STATE, C=0.1
-            ))
-        ]),
-        'XGBoost': Pipeline([
-            ('prep', preprocessor),
-            ('clf', XGBClassifier(
-                n_estimators=100, max_depth=6,
-                learning_rate=0.1, subsample=0.9, colsample_bytree=0.9,
-                objective='multi:softprob', eval_metric='mlogloss',
-                random_state=RANDOM_STATE, n_jobs=1
-            ))
-        ])
+        'DummyClassifier': DummyClassifier(strategy='stratified', random_state=RANDOM_STATE),
+        'Logit_L2': LogisticRegression(
+            solver='lbfgs', max_iter=1000, random_state=RANDOM_STATE
+        ),
+        'RandomForest': RandomForestClassifier(
+            n_estimators=100, max_depth=6, random_state=RANDOM_STATE, n_jobs=1,
+            class_weight='balanced'
+        ),
+        'DecisionTree': DecisionTreeClassifier(
+            max_depth=10, random_state=RANDOM_STATE,
+            class_weight='balanced'
+        ),
+        'Logit_Weighted_L2': LogisticRegression(
+            solver='lbfgs', max_iter=1000, random_state=RANDOM_STATE,
+            class_weight='balanced'
+        ),
+        'Logit_Weighted_All_L2': LogisticRegression(
+            solver='lbfgs', max_iter=1000, random_state=RANDOM_STATE,
+            class_weight='balanced', C=0.1
+        ),
+        'Logit_All_L2': LogisticRegression(
+            solver='lbfgs', max_iter=1000, random_state=RANDOM_STATE, C=0.1
+        ),
+        'XGBoost': XGBClassifier(
+            n_estimators=100, max_depth=6,
+            learning_rate=0.1, subsample=0.9, colsample_bytree=0.9,
+            objective='multi:softprob', eval_metric='mlogloss',
+            random_state=RANDOM_STATE, n_jobs=1
+        )
     }
 
-    model_feature_mapping = {
-        'Logit_All_L2': X_full,
-        'Logit_Weighted_All_L2': X_full,
-    }
+    full_feature_models = {'Logit_All_L2', 'Logit_Weighted_All_L2'}
 
     results = []
     all_user_results = []
 
-    for name, model in tqdm(models_to_test.items(), desc="Models"):
-        if name in model_feature_mapping:
-            X_model = model_feature_mapping[name]
-            feature_type = "full features"
-        else:
-            X_model = X
-            feature_type = "selected features"
-        print(f"🧠 Evaluating {name} with {feature_type} ({X_model.shape[1]} features)")
-        res, user_res = run_personalization_cv(model, X_model, y, groups, name, PERSONALIZATION_K)
+    for name, clf in tqdm(models_to_test.items(), desc="Models"):
+        use_selector = name not in full_feature_models
+        feature_type = "full features" if not use_selector else "selected features (fold-safe)"
+        model = build_pipeline(clf, use_selector)
+        print(f"🧠 Evaluating {name} with {feature_type} ({X_full.shape[1]} features)")
+        res, user_res = run_personalization_cv(model, X_full, y, groups, name, PERSONALIZATION_K)
         results.append(res)
         all_user_results.append(user_res)
         print(f"✅ {name} complete")
