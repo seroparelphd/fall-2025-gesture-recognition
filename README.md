@@ -71,14 +71,14 @@ To run end-to-end with documented ordering, see `run_pipeline.sh`.
 
 ## Key Visualizations
 
-![Model Performance](results/figures/model_comparison.png)
-Comparison of F1 Scores across all tested models. The Logit_L2 model (our final choice) demonstrates the best balance of performance and stability.
+![Model Performance](results/final/model_comparison_story.png)
+Model Performance: Our optimized logistic regression (Meta Blue) outperforms both the full-feature version and complex ensembles, proving that physiological feature selection (160 → 37 features) drives better generalization than brute force.
 
 ![Classification Errors](results/figures/confusion_matrix_analysis.png)
 Confusion matrix showing classification performance. Off-diagonal elements highlight specific gestures that are frequently misclassified.
 
-![User Variability](results/figures/per_user_performance.png)
-Distribution of model performance across 100 users, highlighting the significant inter-subject variability in sEMG signal quality.
+![Feature Importance](results/final/feature_importance_all_37.png)
+Dimensionality Reduction: The feature selection pipeline identified 37 critical metrics, heavily weighting the RMS of Channels 4 and 5. This validates the physiological relevance of the model.
 
 ## Repository Structure Overview
 
