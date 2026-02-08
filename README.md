@@ -13,13 +13,13 @@ Developed a gesture recognition pipeline using the Meta Reality Labs neuromotor 
 ![Model Performance](results/final/model_comparison_story.png)
 Model Comparison: The **L2-regularized logistic regression** with 37 selected features (blue) outperforms the full 160-feature model and tree-based ensembles, demonstrating that physiological feature selection yields the most generalizable solution.
 
-![Feature Importance](results/final/feature_importance_all_37.png)
-Dimensionality Reduction: The feature selection pipeline identified 37 critical metrics, heavily weighting the RMS of channels 4 and 5. This validates the physiological relevance of the model.
-
 ## Key Visualizations
 
+![Feature Importance](results/final/feature_importance_all_37.png)
+Figure 1: Feature Importance Analysis. Our pipeline identified the RMS of channels 4 and 5 as the most critical predictors, validating the physiological relevance of the selected feature set.
+
 ![Classification Errors](results/figures/confusion_matrix_analysis.png)
-(a) Normalized **L2-regularized logistic regression** confusion matrix (per-class recall). (b) Off-diagonal-only view highlighting misclassification patterns between gestures.
+Figure 2: detailed Error Analysis. (a) Normalized confusion matrix showing per-class recall. (b) Off-diagonal misclassifications highlighting specific gesture confusions.
 
 <details>
 <summary>⚙️ Installation & Usage</summary>
