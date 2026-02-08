@@ -6,9 +6,9 @@
 
 Implementing and evaluating personalized models for discrete hand gesture classification from surface electromyography (sEMG) signals. Our core methodology addresses the necessity of achieving robust within-user generalization (evaluation on the same user's unseen data) due to the high inter-user signal variability inherent in sEMG signatures. The project utilizes the `discrete_gestures` in the `generic-neuromotor-interface` dataset ([Kaifosh et al. 2025](https://doi.org/10.1038/s41586-025-09255-w)) to support robust wearable device design.
 
-## TL;DR / Key Results
+## TL;DR
 
-**Executive Summary:** Developed a gesture recognition pipeline using the Meta Reality Labs neuromotor interface dataset. By optimizing feature selection (reducing inputs from 160 → 37), I achieved **0.71 F1-Score**, matching the performance of complex ensembles (XGBoost) with a significantly lighter, interpretable logistic regression model.
+Developed a gesture recognition pipeline using the Meta Reality Labs neuromotor interface dataset. By optimizing feature selection (reducing inputs from 160 → 37), we achieved **0.71 F1-Score**, matching the performance of complex ensembles (XGBoost) with a significantly lighter, interpretable logistic regression model.
 
 ![Model Performance](results/final/model_comparison_story.png)
 Model Comparison: The **L2-regularized logistic regression** with 37 selected features (blue) outperforms the full 160-feature model and tree-based ensembles, demonstrating that physiological feature selection yields the most generalizable solution.
@@ -16,10 +16,7 @@ Model Comparison: The **L2-regularized logistic regression** with 37 selected fe
 ![Feature Importance](results/final/feature_importance_all_37.png)
 Dimensionality Reduction: The feature selection pipeline identified 37 critical metrics, heavily weighting the RMS of channels 4 and 5. This validates the physiological relevance of the model.
 
-## Detailed Error Analysis
-
-![User Generalization](results/figures/user_performance_boxplot.png)
-User Generalization: Distribution of F1-scores across 100 participants. The high density of points around the mean and the compact interquartile range demonstrate that the l2-regularized logistic regression generalizes robustly across the diverse neuromotor signatures in the dataset.
+## Key Visualizations
 
 ![Classification Errors](results/figures/confusion_matrix_analysis.png)
 (a) Normalized **L2-regularized logistic regression** confusion matrix (per-class recall). (b) Off-diagonal-only view highlighting misclassification patterns between gestures.

@@ -73,6 +73,7 @@ def run_personalization_cv(model, X, y, groups, name, k_folds):
             'Model': name,
             'User_ID': user,
             'Mean_User_Accuracy': float(np.mean(acc_scores)),
+            'Mean_User_F1_Macro': float(np.mean(f1_scores)),
             'Sample_Count': int(len(X_user)),
             'Folds_Processed': int(len(acc_scores))
         })
