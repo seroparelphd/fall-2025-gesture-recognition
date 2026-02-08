@@ -8,22 +8,18 @@ Implementing and evaluating personalized models for discrete hand gesture classi
 
 ## TL;DR / Key Results
 
-**Executive Summary:**
-- **Scale:** Led development of personalized ML models processing **33GB of data** to classify human intent for neuromotor interfaces.
-- **Engineering:** Engineered signal processing pipelines to extract robust features from high-dimensional time-series data.
-- **Optimization:** Applied Random Forest ranking to reduce data dimensionality from **160 to 37 inputs**, improving sensitivity and reducing compute.
-- **Performance:** Selected optimal Logistic Regression models achieving **0.72 F1 scores** on calibration data for robust within-user generalization.
+**Executive Summary:** Developed a gesture recognition pipeline using the Meta Reality Labs neuromotor interface dataset. By optimizing feature selection (reducing inputs from 160 → 37), I achieved **0.71 F1-Score**, matching the performance of complex ensembles (XGBoost) with a significantly lighter, interpretable Logistic Regression model.
+
+![Model Performance](results/final/model_comparison_story.png)
+Model Comparison: The L2-regularized Logistic Regression with 37 selected features (Blue) outperforms the full 160-feature model and tree-based ensembles, demonstrating that physiological feature selection yields the most generalizable solution.
+
+![Feature Importance](results/final/feature_importance_all_37.png)
+Dimensionality Reduction: The feature selection pipeline identified 37 critical metrics, heavily weighting the RMS of Channels 4 and 5. This validates the physiological relevance of the model.
 
 ## Key Visualizations
 
-![Model Comparison](results/final/model_comparison_story.png)
-Performance: L2-Regularized Logistic Regression (Blue) outperforms complex ensembles.
-
-![Feature Importance](results/final/feature_importance_all_37.png)
-Optimization: Recursive feature elimination reduced inputs from 160 → 37, identifying key physiological signals (Channel 4/5 RMS).
-
-![Confusion Matrix](results/figures/confusion_matrix_analysis.png)
-Analysis: (a) Normalized classification accuracy. (b) Off-diagonal misclassification patterns.
+![Classification Errors](results/figures/confusion_matrix_analysis.png)
+(a) Normalized Logit\_L2 confusion matrix (per-class recall). (b) Off-diagonal-only view highlighting misclassification patterns between gestures.
 
 <details>
 <summary>⚙️ Installation & Usage</summary>
